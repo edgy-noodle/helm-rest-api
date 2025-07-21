@@ -1,0 +1,74 @@
+global:
+  pullSecrets: []
+
+app:
+  containerPorts:
+    http: 8080
+  containerSecurityContext:
+    runAsUser: 3000
+    runAsGroup: 3000
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: "RuntimeDefault"
+  image:
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  podAntiAffinityPreset: soft
+  podSecurityContext:
+    fsGroup: 3000
+    supplementalGroupsPolicy: Strict
+  readinessProbe:
+    httpGet:
+      path: "/health"
+      port: http
+    timeoutSeconds: 1
+    periodSeconds: 3
+  livenessProbe:
+    httpGet:
+      path: "/health"
+      port: http
+    failureThreshold: 6
+    timeoutSeconds: 1
+    periodSeconds: 5
+  replicaCount: 1
+  resourcesPreset: "micro"
+autoscaling:
+  enabled: false
+  targetCPU: 50
+  targetMemory: 50
+httpRoute:
+  enabled: false
+  extraParentRefs: []
+ingress:
+  enabled: false
+  annotations: {}
+  pathType: Prefix
+  selfSigned: false
+metrics:
+  enabled: false
+  service:
+    ports:
+      metrics: 9150
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "{{ .Values.metrics.containerPorts.metrics }}"
+  serviceMonitor:
+    enabled: true
+networkPolicy:
+  enabled: true
+  allowDNS: false
+  allowExternalEgress: false
+  allowExternalIngress: true
+pdb:
+  enabled: false
+service:
+  type: ClusterIP
+  ports:
+    http: 80
+serviceAccount:
+  create: true

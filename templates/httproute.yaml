@@ -1,0 +1,29 @@
+{{- if .Values.httpRoute.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {{- include "app.metadata" ( dict "customAnnotations" .Values.httpRoute.annotations "context" $ ) | nindent 2 }}
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .Values.httpRoute.gateway.name }}
+      namespace: {{ default (include "common.names.namespace" .) .Values.httpRoute.gateway.namespace }}
+    {{- if .Values.httpRoute.extraParentRefs }}
+    {{- toYaml .Values.httpRoute.extraParentRefs | nindent 4 }}
+    {{- end }}
+  hostnames:
+    - {{ tpl .Values.host $ | quote }}
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: {{ include "common.names.fullname" . }}
+          namespace: {{ include "common.names.namespace" . }}
+          port: {{ .Values.service.ports.http }}
+      matches:
+        - path:
+            type: PathPrefix
+            value: /
+    {{- if .Values.httpRoute.extraRules }}
+    {{- toYaml .Values.httpRoute.extraRules | nindent 4 }}
+    {{- end }}
+{{- end }}

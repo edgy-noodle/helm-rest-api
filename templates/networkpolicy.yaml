@@ -1,0 +1,57 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: {{ include "common.capabilities.networkPolicy.apiVersion" . }}
+kind: NetworkPolicy
+metadata: {{- include "app.metadata" . | nindent 2 }}
+spec:
+  {{- $podLabels := include "common.tplvalues.merge" ( dict "values" ( list .Values.podLabels .Values.commonLabels ) "context" . ) }}
+  podSelector:
+    matchLabels: {{- include "common.labels.matchLabels" ( dict "customLabels" $podLabels "context" $ ) | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+  {{- if .Values.networkPolicy.allowExternalEgress }}
+    - {}
+  {{- else }}
+    {{- if .Values.networkPolicy.allowDNS }}
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    {{- end }}
+    {{- if .Values.networkPolicy.extraEgress }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.server.networkPolicy.extraEgress "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+  ingress:
+  {{- if .Values.networkPolicy.allowExternalIngress }}
+    - {}
+  {{- else }}
+    {{- if .Values.httpRoute.enabled }}
+    - ports:
+        - port: {{ .Values.app.containerPorts.http }}
+      from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ default (include "common.names.namespace" .) .Values.httpRoute.gateway.namespace }}
+          {{- if (.Values.networkPolicy.gateway).podSelector }}
+          podSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.networkPolicy.gateway.podSelector "context" $ ) | nindent 12 }}
+          {{- end }}
+    {{- end }}
+    {{- if .Values.ingress.enabled }}
+    - ports:
+        - port: {{ .Values.app.containerPorts.http }}
+      from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ default (include "common.names.namespace" .) .Values.networkPolicy.ingressController.namespace }}
+          {{- if (.Values.networkPolicy.ingressController).podSelector }}
+          podSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.networkPolicy.ingressController.podSelector "context" $ ) | nindent 12 }}
+          {{- end }}
+    {{- end }}
+    {{- if .Values.networkPolicy.extraIngress }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.networkPolicy.extraIngress "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

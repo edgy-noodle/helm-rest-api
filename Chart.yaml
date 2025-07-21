@@ -1,0 +1,21 @@
+annotations:
+  category: frontend
+apiVersion: v2
+appVersion: "0.0.0"
+description: A Helm chart for deploying a REST API to Kubernetes
+dependencies:
+  - name: common
+    version: 2.x.x
+    repository: oci://registry-1.docker.io/bitnamicharts
+keywords:
+  - rest api
+  - frontend
+  - web
+maintainers:
+  - name: Serious Org Inc.
+    url: https://github.com/edgy-noodle/helm-rest-api
+name: rest-api
+sources:
+  - https://github.com/edgy-noodle/helm-rest-api/tree/main/
+type: application
+version: 0.1.1

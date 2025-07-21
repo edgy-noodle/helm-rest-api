@@ -1,0 +1,30 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: {{ include "common.capabilities.ingress.apiVersion" . }}
+kind: Ingress
+metadata: {{- include "app.metadata" ( dict "customAnnotations" .Values.ingress.annotations "context" $ ) | nindent 2 }}
+spec:
+  {{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName | quote }}
+  {{- end }}
+  rules:
+    {{- if .Values.host }}
+    - host: {{ tpl .Values.host $ | quote }}
+      http:
+        paths:
+          {{- if .Values.ingress.extraPaths }}
+          {{- toYaml .Values.ingress.extraPaths | nindent 10 }}
+          {{- end }}
+          - path: {{ .Values.ingress.path }}
+            pathType: {{ .Values.ingress.pathType }}
+            backend: {{- include "common.ingress.backend" ( dict "serviceName" ( include "common.names.fullname" . ) "servicePort" "http" "context" $ )  | nindent 14 }}
+    {{- end }}
+  {{- if and .Values.ingress.tls (or (include "common.ingress.certManagerRequest" ( dict "annotations" .Values.ingress.annotations )) .Values.ingress.selfSigned) }}
+  tls:
+    - hosts:
+        - {{ tpl .Values.host $ | quote }}
+        {{- if and (or (.Values.ingress.tlsWwwPrefix) (eq (index .Values.ingress.annotations "nginx.ingress.kubernetes.io/from-to-www-redirect") "true" )) (not (contains "www." .Values.host))  }}
+        - {{ printf "www.%s" ( tpl .Values.host $ ) | quote }}
+        {{- end }}
+      secretName: {{ printf "%s-tls" ( tpl .Values.host $ ) }}
+  {{- end }}
+{{- end }}
